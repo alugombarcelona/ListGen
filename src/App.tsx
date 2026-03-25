@@ -193,8 +193,12 @@ export default function App() {
       
       autoTable(doc, {
         startY: currentY,
-        head: [['Código', 'Descripción', 'Cantidad']],
-        body: items.map(item => [item.code, item.description, item.quantity]),
+        head: [['Código', 'Descripción', 'Metros', 'Barras']],
+        body: items.map(item => {
+          const qtyNum = parseFloat(item.quantity.replace(',', '.'));
+          const barras = isNaN(qtyNum) ? '0' : Math.ceil(qtyNum / 6.4).toString();
+          return [item.code, item.description, item.quantity, barras];
+        }),
         theme: 'grid',
         headStyles: { fillColor: [90, 98, 58], textColor: 255 },
         styles: { font: 'helvetica', fontSize: 10 },
@@ -210,12 +214,14 @@ export default function App() {
 
   const handleExportCSV = () => {
     if (!groupedMaterials) return;
-    let csv = 'Pedido,RAL,Cliente,Ref,Código,Descripción,Cantidad\n';
+    let csv = 'Pedido,RAL,Cliente,Ref,Código,Descripción,Metros,Barras\n';
     (Object.entries(groupedMaterials) as [string, MaterialItem[]][]).forEach(([reference, items]) => {
       const meta = orderMetadata[reference] || { ral: '', cliente: '', ref: '' };
       items.forEach(item => {
         const desc = `"${item.description.replace(/"/g, '""')}"`;
-        csv += `${reference},${meta.ral},${meta.cliente},${meta.ref},${item.code},${desc},"${item.quantity}"\n`;
+        const qtyNum = parseFloat(item.quantity.replace(',', '.'));
+        const barras = isNaN(qtyNum) ? 0 : Math.ceil(qtyNum / 6.4);
+        csv += `${reference},${meta.ral},${meta.cliente},${meta.ref},${item.code},${desc},"${item.quantity}",${barras}\n`;
       });
     });
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
@@ -466,8 +472,11 @@ export default function App() {
                                   <th className="p-4 font-semibold border-r-2 border-[#3A4028]">
                                     <div className="flex items-center gap-2"><AlignLeft className="w-4 h-4 text-[#5A623A]"/> Descripción</div>
                                   </th>
+                                  <th className="p-4 font-semibold w-32 text-right border-r-2 border-[#3A4028]">
+                                    <div className="flex items-center justify-end gap-2"><Hash className="w-4 h-4 text-[#5A623A]"/> Metros</div>
+                                  </th>
                                   <th className="p-4 font-semibold w-32 text-right">
-                                    <div className="flex items-center justify-end gap-2"><Hash className="w-4 h-4 text-[#5A623A]"/> Cantidad</div>
+                                    <div className="flex items-center justify-end gap-2"><Layers className="w-4 h-4 text-[#5A623A]"/> Barras</div>
                                   </th>
                                 </tr>
                               </thead>
@@ -480,10 +489,13 @@ export default function App() {
                                     <tr key={idx} className="border-b border-[#3A4028]/20 last:border-0 hover:bg-white hover:border-l-4 hover:border-l-[#5A623A] transition-all group">
                                       <td className="p-4 border-r-2 border-[#3A4028] font-mono font-medium">{item.code}</td>
                                       <td className="p-4 border-r-2 border-[#3A4028] whitespace-normal min-w-[200px]">{item.description}</td>
-                                      <td className="p-4 text-right font-mono font-bold text-[#5A623A]">
+                                      <td className="p-4 text-right font-mono font-bold text-[#5A623A] border-r-2 border-[#3A4028]">
                                         <span className={`px-2 py-1 rounded transition-colors ${isHighQuantity ? 'bg-[#5A623A]/20 text-[#3A4028]' : 'group-hover:bg-[#EBECE7]'}`}>
                                           {item.quantity}
                                         </span>
+                                      </td>
+                                      <td className="p-4 text-right font-mono font-bold text-[#3A4028]">
+                                        {isNaN(qtyNum) ? '-' : Math.ceil(qtyNum / 6.4)}
                                       </td>
                                     </tr>
                                   );
